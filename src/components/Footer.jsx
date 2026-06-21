@@ -136,7 +136,7 @@ export default function Footer() {
 
             {/* GitHub icon link */}
             <IconLink
-              href="https://github.com"
+              href="https://github.com/jayeshchaudhari4511"
               title="GitHub"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">

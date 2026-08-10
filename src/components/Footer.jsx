@@ -4,7 +4,6 @@
    and the "Built for Digital Heroes" CTA button.
 ───────────────────────────────────────────────────────────── */
 
-const DIGITAL_HEROES_URL = 'https://digitalheroesco.com'
 const MAKER_EMAIL        = 'jayesh6056@gmail.com'
 const MAKER_NAME         = 'Jayesh Chaudhari'
 const CURRENT_YEAR       = new Date().getFullYear()
@@ -76,43 +75,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* CENTER — "Built for Digital Heroes" CTA */}
-          <a
-            id="footer-digital-heroes-btn"
-            href={DIGITAL_HEROES_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center gap-2.5 px-5 py-2.5 rounded-xl
-                       border border-primary-500/30 bg-primary-500/10
-                       text-sm font-semibold text-primary-300
-                       hover:bg-primary-500/20 hover:border-primary-400/60
-                       hover:text-white hover:shadow-glow
-                       active:scale-95
-                       transition-all duration-200"
-          >
-            {/* Lightning bolt icon */}
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
-              className="text-primary-400 group-hover:text-yellow-300
-                         transition-colors duration-200"
-            >
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
 
-            Built for Digital Heroes
-
-            {/* External link arrow */}
-            <svg
-              width="11" height="11" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-primary-500 group-hover:text-primary-300
-                         group-hover:translate-x-0.5 group-hover:-translate-y-0.5
-                         transition-all duration-200"
-            >
-              <line x1="7" y1="17" x2="17" y2="7"/>
-              <polyline points="7 7 17 7 17 17"/>
-            </svg>
-          </a>
 
           {/* RIGHT — Email + icon links */}
           <div className="flex items-center gap-3">

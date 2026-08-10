@@ -3,8 +3,6 @@
    Captures the #resume-paper DOM node with html2canvas,
    then wraps it in an A4 jsPDF document and triggers download.
 ───────────────────────────────────────────────────────────── */
-import html2canvas from 'html2canvas'
-import jsPDF       from 'jspdf'
 
 /**
  * Capture the element with id="resume-paper" and save as PDF.
@@ -28,6 +26,12 @@ export async function downloadResumePdf(
 
   try {
     onStart()
+
+    /* ── Dynamically import heavy PDF rendering libraries ── */
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ])
 
     /* ── 1. Capture the DOM node at 2× resolution for crisp PDF ── */
     const canvas = await html2canvas(element, {

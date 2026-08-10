@@ -370,7 +370,7 @@ export default function Home() {
 
 
       {/* ═══════════════════════════════════════
-          FOOTER CTA — "Built for Digital Heroes"
+          FOOTER CTA — "Start Building"
       ═══════════════════════════════════════ */}
       <section className="relative py-24 px-4 sm:px-6 lg:px-8">
         <div className="orb w-80 h-80 bg-blue-600   -top-20 -left-20"  />
@@ -393,7 +393,7 @@ export default function Home() {
           <h2 className="relative z-10 text-4xl sm:text-5xl font-extrabold text-white mb-4 leading-tight">
             Built for{' '}
             <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              Digital Heroes
+              Ambitious Professionals
             </span>
           </h2>
           <p className="relative z-10 text-slate-400 text-lg mb-10 max-w-md mx-auto leading-relaxed">
@@ -408,20 +408,6 @@ export default function Home() {
             >
               Start Building Free →
             </Link>
-
-            <a
-              id="footer-cta-digital-heroes"
-              href="https://digitalheroesco.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-outline text-base px-8 py-4 rounded-2xl"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-              Visit Digital Heroes
-            </a>
           </div>
         </div>
       </section>

@@ -275,6 +275,37 @@ export default function JobMatchAnalyzer({ skills = [] }) {
   return (
     <div className="space-y-5">
 
+      {/* ── AI Banner CTA ── */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-violet-500/20 via-purple-500/15 to-blue-500/20
+                      border border-violet-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center text-violet-300 shrink-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              Try Gemini AI Analyzer
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-violet-500/30 text-violet-200 uppercase tracking-wider">
+                Recommended
+              </span>
+            </h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Get deep AI feedback, ATS issue detection, and improved professional summary & bullet points.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/analyzer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold
+                     bg-btn-gradient text-white shadow-glow hover:scale-105 transition-all whitespace-nowrap"
+        >
+          Launch AI Analyzer →
+        </a>
+      </div>
+
       {/* ── Section header ── */}
       <div className="glass-card p-6 sm:p-7">
         <div className="flex items-start gap-4">

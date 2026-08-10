@@ -141,20 +141,20 @@ export default function Analyzer() {
                   </div>
                   <div className="space-y-1 text-xs text-slate-400">
                     {resumeData?.personalData?.fullName && (
-                      <p><span className="text-slate-500">Name:</span> {resumeData.personalData.fullName}</p>
+                      <p><span className="text-slate-400 font-medium">Name:</span> {resumeData.personalData.fullName}</p>
                     )}
                     {(resumeData?.skills?.length ?? 0) > 0 && (
-                      <p><span className="text-slate-500">Skills:</span> {resumeData!.skills!.slice(0, 5).join(', ')}{(resumeData!.skills!.length > 5) ? ` +${resumeData!.skills!.length - 5} more` : ''}</p>
+                      <p><span className="text-slate-400 font-medium">Skills:</span> {resumeData!.skills!.slice(0, 5).join(', ')}{(resumeData!.skills!.length > 5) ? ` +${resumeData!.skills!.length - 5} more` : ''}</p>
                     )}
                     {(resumeData?.experienceList?.length ?? 0) > 0 && (
-                      <p><span className="text-slate-500">Experience:</span> {resumeData!.experienceList!.filter(e => e.role?.trim()).length} role(s)</p>
+                      <p><span className="text-slate-400 font-medium">Experience:</span> {resumeData!.experienceList!.filter(e => e.role?.trim()).length} role(s)</p>
                     )}
                     {(resumeData?.educationList?.length ?? 0) > 0 && (
-                      <p><span className="text-slate-500">Education:</span> {resumeData!.educationList!.filter(e => e.degree?.trim()).length} entry(s)</p>
+                      <p><span className="text-slate-400 font-medium">Education:</span> {resumeData!.educationList!.filter(e => e.degree?.trim()).length} entry(s)</p>
                     )}
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-600">
+                <p className="text-[11px] text-slate-400">
                   ℹ️ Resume data loaded from the Builder. Go to{' '}
                   <a href="/builder" className="text-primary-400 hover:text-primary-300 underline">Builder</a>
                   {' '}to update it.
@@ -168,7 +168,7 @@ export default function Analyzer() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-slate-300">No Resume Found</p>
-                  <p className="text-xs text-slate-600 max-w-xs">
+                  <p className="text-xs text-slate-400 max-w-xs">
                     Go to the{' '}
                     <a href="/builder" className="text-primary-400 hover:text-primary-300 underline">Builder</a>
                     {' '}and fill in your details first.
@@ -205,19 +205,19 @@ export default function Analyzer() {
                 rows={8}
                 aria-label="Job description input"
                 className="w-full px-4 py-3 rounded-xl text-sm text-slate-200 leading-relaxed
-                           bg-white/5 border border-white/10 placeholder-slate-600
+                           bg-white/5 border border-white/10 placeholder-slate-400
                            focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30
                            transition-all duration-200 resize-none"
               />
               {jobDesc.length > 0 && (
-                <span className="absolute bottom-3 right-3 text-[10px] text-slate-600 font-mono">
+                <span className="absolute bottom-3 right-3 text-[10px] text-slate-400 font-mono">
                   {jobDesc.length} chars
                 </span>
               )}
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] text-slate-600">
+              <p className="text-[11px] text-slate-400">
                 {!hasJobDesc
                   ? 'Paste a job description above to analyze.'
                   : `${jobDesc.trim().split(/\s+/).length} words · Press Ctrl+Enter to analyze.`
@@ -226,7 +226,7 @@ export default function Analyzer() {
               {jobDesc.length > 0 && (
                 <button
                   onClick={() => setJobDesc('')}
-                  className="text-[11px] text-slate-600 hover:text-rose-400 transition-colors
+                  className="text-[11px] text-slate-400 hover:text-rose-400 transition-colors
                              flex items-center gap-1 whitespace-nowrap cursor-pointer"
                   aria-label="Clear job description"
                 >
@@ -345,7 +345,7 @@ export default function Analyzer() {
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-400 leading-relaxed">
                   <span className="text-violet-400 font-semibold">AI-Powered: </span>
                   This analysis was generated by Google Gemini. Results are suggestions —
                   always review and tailor your resume based on your own judgment.
@@ -379,7 +379,7 @@ export default function Analyzer() {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-semibold text-slate-300">Ready to Analyze</p>
-              <p className="text-xs text-slate-600 max-w-xs">
+              <p className="text-xs text-slate-400 max-w-xs">
                 {!hasResume
                   ? 'Build your resume first in the Builder, then come back to analyze.'
                   : !hasJobDesc

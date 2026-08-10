@@ -99,7 +99,7 @@ function ResumeMockup() {
           <span className="w-2.5 h-2.5 rounded-full bg-rose-400/70" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400/70" />
-          <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-600 font-mono">
+          <span className="ml-auto flex items-center gap-1 text-[10px] text-slate-400 font-mono">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-slow" />
             live preview
           </span>
@@ -254,7 +254,7 @@ export default function Home() {
                   <p className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                     {value}
                   </p>
-                  <p className="text-[11px] text-slate-600 mt-0.5">{label}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{label}</p>
                 </div>
               ))}
             </div>

@@ -17,7 +17,7 @@ function IconLink({ href, title, children }) {
       rel="noopener noreferrer"
       title={title}
       className="w-8 h-8 rounded-lg bg-white/5 border border-white/10
-                 flex items-center justify-center text-slate-500
+                 flex items-center justify-center text-slate-400
                  hover:text-white hover:bg-white/10 hover:border-white/20
                  transition-all duration-200"
     >
@@ -62,7 +62,7 @@ export default function Footer() {
             <span className="hidden sm:inline w-1 h-1 rounded-full bg-white/20" />
 
             {/* Maker credit */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 className="text-rose-400/80">
@@ -84,7 +84,7 @@ export default function Footer() {
             <a
               id="footer-email-link"
               href={`mailto:${MAKER_EMAIL}`}
-              className="flex items-center gap-1.5 text-xs text-slate-500
+              className="flex items-center gap-1.5 text-xs text-slate-400
                          hover:text-primary-400 transition-colors duration-200"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
@@ -139,10 +139,10 @@ export default function Footer() {
         {/* ── Bottom copyright strip ── */}
         <div className="border-t border-white/5 py-3 flex flex-col sm:flex-row
                          items-center justify-between gap-2">
-          <p className="text-[11px] text-slate-600">
+          <p className="text-[11px] text-slate-400">
             © {CURRENT_YEAR} ResumeForge · All rights reserved.
           </p>
-          <div className="flex items-center gap-4 text-[11px] text-slate-600">
+          <div className="flex items-center gap-4 text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-slow" />
               ATS Friendly Builder

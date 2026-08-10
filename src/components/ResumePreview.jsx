@@ -113,7 +113,7 @@ function TemplateOption({ tpl, selected, onSelect }) {
                         ${active ? 'text-white' : 'text-slate-300'}`}>
           {tpl.label}
         </p>
-        <p className="text-[10px] text-slate-500 mt-0.5 truncate">{tpl.desc}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5 truncate">{tpl.desc}</p>
       </div>
       {/* Badge */}
       <span className={`shrink-0 text-[9px] font-bold px-2 py-0.5 rounded-full border

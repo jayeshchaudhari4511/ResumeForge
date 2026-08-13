@@ -43,7 +43,31 @@ export async function analyzeResume(
     )
   }
 
-  const data = await response.json()
+  let data: any
+  const contentType = response.headers?.get ? response.headers.get('content-type') || '' : 'application/json'
+
+  if (contentType.includes('application/json')) {
+    try {
+      data = await response.json()
+    } catch {
+      throw new AnalysisApiError(
+        'Invalid JSON response received from the server.',
+        'INVALID_RESPONSE'
+      )
+    }
+  } else {
+    if (response.status === 404) {
+      throw new AnalysisApiError(
+        'Analysis API endpoint not found (/api/analyze). Please ensure the Vercel backend server function is deployed.',
+        'ENDPOINT_NOT_FOUND'
+      )
+    }
+    const text = await response.text().catch(() => '')
+    throw new AnalysisApiError(
+      `Server returned an unexpected response (${response.status}): ${text.substring(0, 100)}`,
+      'SERVER_ERROR'
+    )
+  }
 
   if (!response.ok) {
     const errData = data as AnalysisErrorType

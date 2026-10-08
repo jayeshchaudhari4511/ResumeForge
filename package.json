@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "server": "tsx watch server/index.ts",
-    "dev:all": "concurrently -k \"npm run server\" \"npm run dev\"",
-    "build": "vite build",
+    "dev": "concurrently -k \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "start": "npm start --prefix server",
+    "build": "npm run build --prefix client",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "npm run preview --prefix client",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },

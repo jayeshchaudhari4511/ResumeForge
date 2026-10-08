@@ -1,11 +1,16 @@
+import { useState, useEffect } from 'react'
+import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useLocalStorage, clearResumeStorage } from '../hooks/useLocalStorage'
 import ResumeForm, { INITIAL_FORM_DATA }               from '../components/ResumeForm'
 import EducationSection, { EMPTY_EDUCATION }           from '../components/EducationSection'
 import ExperienceSection, { EMPTY_EXPERIENCE }         from '../components/ExperienceSection'
 import CertificationsSection, { EMPTY_CERTIFICATION }  from '../components/CertificationsSection'
+import ProjectsSection, { EMPTY_PROJECT }              from '../components/ProjectsSection'
 import SkillsSection                                   from '../components/SkillsSection'
 import ResumePreview                                   from '../components/ResumePreview'
 import JobMatchAnalyzer                                from '../components/JobMatchAnalyzer'
+import { useAuth }                                     from '../context/AuthContext'
+import { resumeApi }                                   from '../services/api'
 
 /* Tab definitions */
 const TABS = [
@@ -54,6 +59,16 @@ const TABS = [
     ),
   },
   {
+    id: 'projects',
+    label: 'Projects',
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
+  },
+  {
     id: 'certifications',
     label: 'Certs',
     icon: (
@@ -81,21 +96,125 @@ const TABS = [
 ]
 
 export default function Builder() {
-  // ── All state persisted to localStorage automatically ──
+  const { isAuthenticated } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const currentResumeId = searchParams.get('id')
+
+  // ── All state persisted to localStorage automatically as draft cache ──
   const [activeTab,        setActiveTab]        = useLocalStorage('activeTab',       'personal')
+  const [title,            setTitle]            = useLocalStorage('resumeTitle',     'My Professional Resume')
   const [personalData,     setPersonalData]     = useLocalStorage('personalData',    { ...INITIAL_FORM_DATA })
   const [educationList,    setEducationList]    = useLocalStorage('educationList',   [{ ...EMPTY_EDUCATION }])
   const [experienceList,   setExperienceList]   = useLocalStorage('experienceList',  [{ ...EMPTY_EXPERIENCE }])
+  const [projects,         setProjects]         = useLocalStorage('projects',        [{ ...EMPTY_PROJECT }])
   const [certifications,   setCertifications]   = useLocalStorage('certifications',  [{ ...EMPTY_CERTIFICATION }])
   const [skills,           setSkills]           = useLocalStorage('skills',          ['Java', 'React', 'MongoDB', 'Python', 'Tailwind'])
 
-  const handleReset = () => {
-    if (window.confirm('Reset all fields? This cannot be undone.')) {
-      // Clear localStorage first, then reset all state
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [loadingCloud, setLoadingCloud] = useState(false)
+
+  // ── Load existing resume from MongoDB if URL has ?id=<resumeId> ──
+  useEffect(() => {
+    if (searchParams.get('new') === 'true') {
       clearResumeStorage()
+      setTitle('Untitled Resume')
       setPersonalData({ ...INITIAL_FORM_DATA })
       setEducationList([{ ...EMPTY_EDUCATION }])
       setExperienceList([{ ...EMPTY_EXPERIENCE }])
+      setProjects([{ ...EMPTY_PROJECT }])
+      setCertifications([{ ...EMPTY_CERTIFICATION }])
+      setSkills(['React', 'Node.js', 'MongoDB', 'Express'])
+      setActiveTab('personal')
+      setSearchParams({})
+      return
+    }
+
+    if (currentResumeId && isAuthenticated) {
+      let isSubscribed = true
+      setLoadingCloud(true)
+
+      resumeApi.getById(currentResumeId)
+        .then((res) => {
+          if (!isSubscribed) return
+          const r = res.resume
+          if (r) {
+            if (r.title) setTitle(r.title)
+            if (r.personal) setPersonalData({ ...INITIAL_FORM_DATA, ...r.personal })
+            if (Array.isArray(r.education) && r.education.length > 0) setEducationList(r.education)
+            if (Array.isArray(r.experience) && r.experience.length > 0) setExperienceList(r.experience)
+            if (Array.isArray(r.projects) && r.projects.length > 0) setProjects(r.projects)
+            if (Array.isArray(r.certifications) && r.certifications.length > 0) setCertifications(r.certifications)
+            if (Array.isArray(r.skills) && r.skills.length > 0) setSkills(r.skills)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load resume from cloud:', err)
+          setSaveError('Could not load resume from cloud: ' + err.message)
+        })
+        .finally(() => {
+          if (isSubscribed) setLoadingCloud(false)
+        })
+
+      return () => {
+        isSubscribed = false
+      }
+    }
+  }, [currentResumeId, isAuthenticated])
+
+  // ── Save Resume to MongoDB / Local Storage ──
+  const handleSave = async () => {
+    setSaveMessage('')
+    setSaveError('')
+
+    if (!isAuthenticated) {
+      setSaveMessage('Saved locally in draft! Log in to sync to MongoDB cloud.')
+      setTimeout(() => setSaveMessage(''), 4000)
+      return
+    }
+
+    try {
+      setSaving(true)
+      const payload = {
+        title: title.trim() || 'My Professional Resume',
+        personal: personalData,
+        education: educationList,
+        experience: experienceList,
+        projects: projects.filter((p) => p.title?.trim() || p.description?.trim()),
+        certifications: certifications.filter((c) => c.certName?.trim()),
+        skills,
+      }
+
+      if (currentResumeId) {
+        await resumeApi.update(currentResumeId, payload)
+        setSaveMessage('Resume updated in MongoDB cloud ✓')
+      } else {
+        const res = await resumeApi.create(payload)
+        const newId = res.resume?._id
+        if (newId) {
+          setSearchParams({ id: newId })
+        }
+        setSaveMessage('Resume saved to MongoDB cloud ✓')
+      }
+      setTimeout(() => setSaveMessage(''), 4000)
+    } catch (err) {
+      setSaveError(err.message || 'Failed to save resume')
+      setTimeout(() => setSaveError(''), 5000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReset = () => {
+    if (window.confirm('Reset all fields? This will clear local draft data.')) {
+      clearResumeStorage()
+      setTitle('My Professional Resume')
+      setPersonalData({ ...INITIAL_FORM_DATA })
+      setEducationList([{ ...EMPTY_EDUCATION }])
+      setExperienceList([{ ...EMPTY_EXPERIENCE }])
+      setProjects([{ ...EMPTY_PROJECT }])
       setCertifications([{ ...EMPTY_CERTIFICATION }])
       setSkills([])
       setActiveTab('personal')
@@ -103,49 +222,89 @@ export default function Builder() {
   }
 
   /* Personal fields filled count */
-  const personalFilled = Object.values(personalData).filter((v) => v.trim?.()).length
+  const personalFilled = Object.values(personalData).filter((v) => v?.trim?.()).length
   const personalTotal  = Object.keys(INITIAL_FORM_DATA).length
 
   /* Education records completed count */
   const eduCompleted = educationList.filter(
-    (r) => r.collegeName.trim() && r.degree.trim()
+    (r) => r.collegeName?.trim() && r.degree?.trim()
   ).length
 
   /* Experience records completed count */
   const expCompleted = experienceList.filter(
-    (r) => r.companyName.trim() && r.role.trim()
+    (r) => r.companyName?.trim() && r.role?.trim()
   ).length
+
+  /* Projects completed count */
+  const projCompleted = projects.filter((p) => p.title?.trim()).length
 
   /* Certifications completed count */
   const certsCompleted = certifications.filter(
-    (r) => r.certName.trim() && r.organization.trim()
+    (r) => r.certName?.trim() && r.organization?.trim()
   ).length
 
-  /* Combined preview data — projects placeholder until ProjectsSection is added */
-  const previewData = { ...personalData, educationList, experienceList, certifications, skills, projects: [] }
+  /* Combined preview data */
+  const previewData = {
+    ...personalData,
+    educationList,
+    experienceList,
+    projects,
+    certifications,
+    skills,
+  }
 
   return (
     <div className="min-h-screen pt-20 pb-12 px-4 sm:px-6 lg:px-8 relative">
       {/* Background orbs */}
-      <div className="orb w-72 h-72 bg-blue-600   top-10  -left-20 opacity-10"/>
-      <div className="orb w-72 h-72 bg-purple-600 bottom-20 right-0  opacity-10"/>
+      <div className="orb w-72 h-72 bg-blue-600 top-10 -left-20 opacity-10"/>
+      <div className="orb w-72 h-72 bg-purple-600 bottom-20 right-0 opacity-10"/>
 
       <div className="max-w-7xl mx-auto">
 
         {/* ── Page header ── */}
         <div className="mb-8 animate-slide-up">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Resume Builder</h1>
-              <p className="text-slate-500 mt-1 text-sm">
-                Fill in your details and watch your resume come to life.
+            <div className="flex-1 min-w-[260px]">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Resume Title..."
+                  className="text-2xl sm:text-3xl font-bold text-white bg-transparent border-b border-dashed border-white/20 hover:border-primary-400 focus:border-primary-500 focus:outline-none transition-colors max-w-md"
+                />
+              </div>
+              <p className="text-slate-400 mt-1 text-xs sm:text-sm">
+                Fill in your details, save to cloud, or export as pixel-perfect PDF.
               </p>
             </div>
-            <div className="flex gap-3">
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Cloud Save Button */}
+              <button
+                id="builder-save-btn"
+                onClick={handleSave}
+                disabled={saving || loadingCloud}
+                className="btn-primary text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5 shadow-glow"
+              >
+                {saving ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                )}
+                <span>{saving ? 'Saving...' : 'Save Resume'}</span>
+              </button>
+
+              {/* Reset Button */}
               <button
                 id="builder-reset-btn"
                 onClick={handleReset}
-                className="btn-outline text-sm px-4 py-2"
+                className="btn-outline text-xs sm:text-sm px-3.5 py-2 flex items-center gap-1.5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -154,10 +313,12 @@ export default function Builder() {
                 </svg>
                 Reset
               </button>
+
+              {/* Download PDF Button */}
               <button
                 id="builder-download-btn"
                 onClick={() => window.print()}
-                className="btn-primary text-sm px-4 py-2"
+                className="btn-outline text-xs sm:text-sm px-3.5 py-2 flex items-center gap-1.5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -165,10 +326,47 @@ export default function Builder() {
                   <polyline points="7 10 12 15 17 10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                Download PDF
+                PDF
               </button>
+
+              {/* Dashboard Link if logged in */}
+              {isAuthenticated && (
+                <Link
+                  to="/dashboard"
+                  className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors border border-white/10 flex items-center gap-1"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                  </svg>
+                  Dashboard
+                </Link>
+              )}
             </div>
           </div>
+
+          {/* Feedback messages */}
+          {saveMessage && (
+            <div className="mt-3 p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span>{saveMessage}</span>
+            </div>
+          )}
+
+          {saveError && (
+            <div className="mt-3 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>{saveError}</span>
+            </div>
+          )}
 
           {/* Overall progress bar */}
           <div className="mt-4 flex items-center gap-2">
@@ -177,14 +375,15 @@ export default function Builder() {
                 className="h-full bg-btn-gradient rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.round(
-                    ((personalFilled / personalTotal) * 0.5 +
-                     (eduCompleted > 0 ? 0.5 : 0)) * 100
+                    ((personalFilled / personalTotal) * 0.4 +
+                     (eduCompleted > 0 ? 0.3 : 0) +
+                     (skills.length > 0 ? 0.3 : 0)) * 100
                   )}%`,
                 }}
               />
             </div>
             <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">
-              {personalFilled}/{personalTotal} · {eduCompleted} edu · {expCompleted} exp · {certsCompleted} certs · {skills.length} skills
+              {personalFilled}/{personalTotal} · {eduCompleted} edu · {expCompleted} exp · {projCompleted} proj · {certsCompleted} certs · {skills.length} skills
             </span>
           </div>
         </div>
@@ -202,6 +401,7 @@ export default function Builder() {
                   id === 'personal'       ? personalFilled :
                   id === 'education'      ? eduCompleted   :
                   id === 'experience'     ? expCompleted   :
+                  id === 'projects'       ? projCompleted  :
                   id === 'certifications' ? certsCompleted :
                   id === 'skills'         ? skills.length  : 0
 
@@ -240,7 +440,7 @@ export default function Builder() {
                                           ? 'bg-violet-500/30 text-violet-200'
                                           : 'bg-violet-500/20 text-violet-400'
                                         }`}>
-                        new
+                        ai
                       </span>
                     )}
                   </button>
@@ -266,6 +466,12 @@ export default function Builder() {
                 <ExperienceSection
                   experienceList={experienceList}
                   onChange={setExperienceList}
+                />
+              )}
+              {activeTab === 'projects' && (
+                <ProjectsSection
+                  projects={projects}
+                  onChange={setProjects}
                 />
               )}
               {activeTab === 'certifications' && (
@@ -304,9 +510,8 @@ export default function Builder() {
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">
             <span className="text-amber-400 font-semibold">Pro tip: </span>
-            Switch between <span className="text-slate-300">Personal</span> and{' '}
-            <span className="text-slate-300">Education</span> tabs to fill in all your details.
-            The live preview updates as you type.
+            Click <span className="text-slate-300">Save Resume</span> anytime to persist your edits to your MongoDB account.
+            The live preview on the right updates instantly as you type.
           </p>
         </div>
       </div>

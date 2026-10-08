@@ -1,0 +1,441 @@
+{
+  "info": {
+    "_postman_id": "resumeforge-api-collection-2026",
+    "name": "ResumeForge MERN API Collection",
+    "description": "Production-ready Postman collection for testing ResumeForge Authentication and Resume CRUD REST APIs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resumeId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "1.1 Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "    console.log('authToken saved to collection variables');",
+                  "}",
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Response contains success and token', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response).to.have.property('token');",
+                  "    pm.expect(response.user).to.have.property('email');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alex Morgan\",\n  \"email\": \"alex.morgan@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account with name, email, and password."
+          }
+        },
+        {
+          "name": "1.2 Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "    console.log('authToken saved to collection variables');",
+                  "}",
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response contains token and user info', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response).to.have.property('token');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.morgan@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Authenticate user credentials and receive a JWT token."
+          }
+        },
+        {
+          "name": "1.3 Get Current User Profile (Me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('User details returned without password', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.user).to.have.property('_id');",
+                  "    pm.expect(response.user).to.not.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Protected endpoint: retrieves current authenticated user profile."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Resumes",
+      "item": [
+        {
+          "name": "2.1 Create Resume",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.resume && response.resume._id) {",
+                  "    pm.collectionVariables.set('resumeId', response.resume._id);",
+                  "    console.log('resumeId saved:', response.resume._id);",
+                  "}",
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Resume created successfully', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.resume).to.have.property('_id');",
+                  "    pm.expect(response.resume.title).to.eql('Software Engineer Resume');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Software Engineer Resume\",\n  \"personal\": {\n    \"fullName\": \"Alex Morgan\",\n    \"email\": \"alex.morgan@example.com\",\n    \"phone\": \"+1 (555) 019-2834\",\n    \"address\": \"San Francisco, CA\",\n    \"linkedin\": \"linkedin.com/in/alexmorgan\",\n    \"github\": \"github.com/alexmorgan\"\n  },\n  \"education\": [\n    {\n      \"collegeName\": \"Stanford University\",\n      \"degree\": \"B.S. in Computer Science\",\n      \"cgpa\": \"3.9\",\n      \"year\": \"2024\"\n    }\n  ],\n  \"experience\": [\n    {\n      \"companyName\": \"Tech Innovations Inc\",\n      \"role\": \"Full Stack Developer Intern\",\n      \"duration\": \"Jun 2023 - Sep 2023\",\n      \"description\": \"Built REST APIs and React frontends that handled 50k+ daily users.\"\n    }\n  ],\n  \"projects\": [\n    {\n      \"title\": \"ResumeForge\",\n      \"techStack\": \"MERN Stack, Tailwind, Gemini AI\",\n      \"link\": \"https://github.com/alexmorgan/resumeforge\",\n      \"description\": \"Production-ready resume builder with AI job description analyzer.\"\n    }\n  ],\n  \"skills\": [\"React.js\", \"Node.js\", \"Express.js\", \"MongoDB\", \"TypeScript\", \"Tailwind CSS\"],\n  \"certifications\": [\n    {\n      \"certName\": \"AWS Certified Cloud Practitioner\",\n      \"organization\": \"Amazon Web Services\",\n      \"year\": \"2024\"\n    }\n  ],\n  \"summary\": \"Dedicated full-stack software engineer with hands-on experience developing web applications using the MERN stack.\",\n  \"template\": \"ats\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/resumes",
+              "host": ["{{baseUrl}}"],
+              "path": ["resumes"]
+            },
+            "description": "Create a new resume document in MongoDB for the logged-in user."
+          }
+        },
+        {
+          "name": "2.2 Get All User Resumes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Resumes array returned', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response).to.have.property('count');",
+                  "    pm.expect(response.resumes).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/resumes",
+              "host": ["{{baseUrl}}"],
+              "path": ["resumes"]
+            },
+            "description": "Fetch all resumes owned by the authenticated user."
+          }
+        },
+        {
+          "name": "2.3 Get Single Resume By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Single resume details returned', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.resume._id).to.eql(pm.collectionVariables.get('resumeId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/resumes/{{resumeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["resumes", "{{resumeId}}"]
+            },
+            "description": "Fetch a specific resume by ID (checks ownership)."
+          }
+        },
+        {
+          "name": "2.4 Update Resume",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Resume updated successfully', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.resume.title).to.eql('Senior Software Engineer Resume');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Senior Software Engineer Resume\",\n  \"skills\": [\"React.js\", \"Node.js\", \"Express.js\", \"MongoDB\", \"TypeScript\", \"Tailwind CSS\", \"Docker\", \"AWS\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/resumes/{{resumeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["resumes", "{{resumeId}}"]
+            },
+            "description": "Update an existing resume owned by the user."
+          }
+        },
+        {
+          "name": "2.5 Delete Resume",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Delete confirmation returned', function () {",
+                  "    pm.expect(response.success).to.eql(true);",
+                  "    pm.expect(response.message).to.include('deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/resumes/{{resumeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["resumes", "{{resumeId}}"]
+            },
+            "description": "Delete a resume owned by the user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Health & AI Analyzer",
+      "item": [
+        {
+          "name": "3.1 Server Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Service status is ok', function () {",
+                  "    pm.expect(response.status).to.eql('ok');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check backend health and database connectivity."
+          }
+        },
+        {
+          "name": "3.2 AI Job Match Analyzer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const response = pm.response.json();",
+                  "pm.test('Valid analysis schema returned', function () {",
+                  "    pm.expect(response).to.have.property('matchScore');",
+                  "    pm.expect(response).to.have.property('summary');",
+                  "    pm.expect(response).to.have.property('strengths');",
+                  "    pm.expect(response).to.have.property('keywordCoverage');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeData\": {\n    \"skills\": [\"React\", \"JavaScript\", \"Node.js\", \"MongoDB\", \"CSS\"],\n    \"personalData\": {\n      \"fullName\": \"Alex Morgan\",\n      \"email\": \"alex@example.com\"\n    },\n    \"experienceList\": [\n      {\n        \"role\": \"Junior Full Stack Developer\",\n        \"companyName\": \"WebLabs\",\n        \"duration\": \"2023 - 2024\",\n        \"description\": \"Developed responsive web apps using React and Express.\"\n      }\n    ]\n  },\n  \"jobDescription\": \"Looking for a Full Stack Developer with React, Node.js, REST APIs, and MongoDB experience to build cloud web applications.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/analyze",
+              "host": ["{{baseUrl}}"],
+              "path": ["analyze"]
+            },
+            "description": "Analyzes candidate resume against a job description using Gemini AI or the fallback engine."
+          }
+        }
+      ]
+    }
+  ]
+}

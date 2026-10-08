@@ -1,256 +1,483 @@
-# ResumeForge
+# ResumeForge — Production-Ready MERN Stack Resume Builder & AI Analyzer
 
-A modern, browser-based resume builder equipped with an **AI-powered Job Match Analyzer** using Google's Gemini API. Create professional, ATS-friendly resumes and optimize them against target job descriptions.
+ResumeForge is a production-grade **MERN stack** (MongoDB, Express.js, React.js, Node.js) web application designed for creating, storing, and customizing professional resumes. It features a live dual-pane editor, multiple ATS-safe templates, pixel-perfect PDF export, secure JWT user authentication, and an **AI-powered Job Match Analyzer** backed by Google Gemini.
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [AI Job Match Analyzer](#ai-job-match-analyzer)
-- [Testing](#testing)
-- [PDF Export](#pdf-export)
-- [Local Storage Persistence](#local-storage-persistence)
-- [Deployment](#deployment)
-- [Known Limitations](#known-limitations)
-- [Future Improvements](#future-improvements)
-- [Scripts](#scripts)
-- [License](#license)
-- [Author](#author)
+1. [Architecture Overview](#architecture-overview)
+2. [Features](#features)
+3. [Technology Stack](#technology-stack)
+4. [Folder Structure](#folder-structure)
+5. [Prerequisites](#prerequisites)
+6. [Environment Variables](#environment-variables)
+7. [MongoDB Atlas Setup Guide](#mongodb-atlas-setup-guide)
+8. [Installation & Local Setup](#installation--local-setup)
+9. [Running the Application](#running-the-application)
+10. [REST API Documentation](#rest-api-documentation)
+11. [Postman API Testing Guide](#postman-api-testing-guide)
+12. [Deployment Guide](#deployment-guide)
+13. [Data Migration (Local Storage to MongoDB)](#data-migration-local-storage-to-mongodb)
+14. [License](#license)
 
 ---
 
-## Overview
+## Architecture Overview
 
-ResumeForge is a full-featured resume workspace that provides a live, split-screen editing experience alongside an **AI-powered Job Match Analyzer**.
+ResumeForge follows a decoupled client-server architecture with secure API communication:
 
-Candidates can create their resume using a tabbed builder, preview it in real time, export to pixel-perfect PDF, and analyze their fit against job descriptions using Google Gemini AI.
+```
+[ React Client (Vite 8) ]
+   ├── Port: 5173 (Dev)
+   ├── Auth Context (JWT in localStorage)
+   ├── Live Resume Preview & PDF Exporter
+   └── AI Job Match Analyzer UI
+         │
+         │  HTTP / REST (Bearer JWT Auth)
+         ▼
+[ Express.js REST API Server ]
+   ├── Port: 5000
+   ├── Auth Middleware (JWT Verification)
+   ├── Error Handler & Input Validation
+   ├── Gemini AI Proxy & Fallback Engine
+         │
+         ├── Mongoose ODM
+         ▼
+[ MongoDB Database (Atlas / Local) ]
+   ├── Users Collection (Bcrypt Hashed Passwords)
+   └── Resumes Collection (User-Scoped Documents)
+```
 
 ---
 
 ## Features
 
-### Resume Builder
-- Tabbed form covering Personal Details, Education, Work Experience, Skills, and Certifications.
-- Live preview that updates on every keystroke.
-- Multiple professionally designed templates (ATS-Friendly & Modern).
-- Automatic state persistence via `localStorage`.
+### 1. User Authentication & Security
+- **JWT-Based Authentication**: Secure stateless token issuance on registration and login.
+- **Bcrypt Password Hashing**: Passwords salted (10 rounds) and never stored in plain text.
+- **Route Protection**: Middleware ensures users can only access and modify their own resumes.
+- **Sensitive Data Exclusion**: Passwords automatically stripped from JSON responses.
 
-### AI-Powered Job Match Analyzer (Gemini API)
-- **ATS Match Score**: Animated circular progress ring with color-coded match tier.
-- **Analysis Summary**: 2-3 sentence overview of candidate fit.
-- **Strengths List**: Specific, evidence-backed resume strengths.
-- **Missing Skills**: Clear identification of required JD skills absent in resume.
-- **Keyword Coverage Grid**: Visual table checking 8-15 critical job keywords.
-- **ATS Compatibility Issues**: Detection of parsing risks or formatting gaps.
-- **Actionable Improvements**: Grounded recommendations with clear explanations.
-- **AI-Improved Professional Summary**: Re-written summary targeting the job without inventing experience.
-- **AI-Improved Bullet Points**: Rewritten bullet points with stronger action verbs.
+### 2. Resume Builder & Management
+- **Tabbed Editor**: Sections for Personal Info, Education, Experience, Projects, Skills, and Certifications.
+- **Cloud Persistence**: Save, load, update, and delete multiple resumes per account.
+- **User Dashboard**: Overview of all saved resumes with quick actions to edit or delete.
+- **Local Draft Caching**: Offline-tolerant editing with local caching so progress is never lost.
+
+### 3. Professional Templates & Export
+- **Template 1 (ATS-Friendly)**: Clean, single-column monochrome design built for ATS parsers.
+- **Template 2 (Modern)**: Contemporary card layout with accent styling and timelines.
+- **PDF Export**: Print-ready and digital-ready PDF generation using `jsPDF` and `html2canvas`.
+
+### 4. AI Job Match Analyzer (Gemini 2.0 Flash)
+- **ATS Match Score**: Evaluates resume fit against any pasted job description.
+- **Keyword Coverage Grid**: Compares critical technical keywords found vs. missing.
+- **Actionable Recommendations**: Clear, contextual suggestions without fabricated experience.
+- **Offline Fallback Engine**: Deterministic keyword engine activates if API quota is reached.
 
 ---
 
-## Architecture
+## Technology Stack
 
-To protect the Google Gemini API key, all AI requests are processed **server-side** through an Express proxy backend:
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 19, JavaScript/TypeScript, Vite 8, Tailwind CSS 3, React Router 7 |
+| **Backend** | Node.js 24, Express.js 4/5, CORS, Dotenv |
+| **Database** | MongoDB, Mongoose 8 ODM |
+| **Authentication** | JSON Web Tokens (`jsonwebtoken`), `bcryptjs` |
+| **AI Integration** | Google Generative AI SDK (`@google/generative-ai`), Gemini 2.0 Flash |
+| **Validation** | Zod 3 / Mongoose Schemas |
+| **PDF Generation** | jsPDF 4, html2canvas 1 |
+| **Testing** | Vitest 4, React Testing Library, JSDOM |
+
+---
+
+## Folder Structure
 
 ```
-[ Browser / Vite App ] ──(POST /api/analyze)──> [ Express Server ] ──(SDK Call)──> [ Google Gemini API ]
-        │                                                │                                   │
-   localStorage                                     Zod Schema                         gemini-2.0-flash
-  Resume Data                                        Validator                           (Structured JSON)
+ResumeForge/
+├── client/                     # Frontend Application
+│   ├── public/                 # Static public assets
+│   ├── src/
+│   │   ├── assets/             # Icons and media
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── templates/      # ATS and Modern templates
+│   │   │   ├── analyzer/       # AI Analyzer widgets
+│   │   │   ├── Navbar.jsx      # Navigation with auth status
+│   │   │   ├── ProjectsSection.jsx
+│   │   │   ├── ProtectedRoute.jsx
+│   │   │   └── ...
+│   │   ├── context/            # AuthContext (login/register/logout)
+│   │   ├── hooks/              # Custom hooks (useLocalStorage, useJobAnalysis)
+│   │   ├── pages/              # Pages: Home, Builder, Dashboard, Login, Register, Analyzer, About
+│   │   ├── services/           # API service client (auth, resumes, analyze)
+│   │   ├── utils/              # PDF generation utilities
+│   │   ├── App.jsx             # Main routing and providers
+│   │   ├── index.css           # Tailwind design tokens
+│   │   └── main.jsx            # Entry point
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js          # Proxies /api to backend
+│   └── tailwind.config.js
+│
+├── server/                     # Backend Application
+│   ├── config/
+│   │   └── db.js               # Mongoose MongoDB connection
+│   ├── controllers/
+│   │   ├── authController.js   # User registration, login, profile
+│   │   └── resumeController.js # Resume CRUD operations
+│   ├── models/
+│   │   ├── User.js             # User Mongoose schema & bcrypt hooks
+│   │   └── Resume.js           # Resume Mongoose schema & subdocuments
+│   ├── routes/
+│   │   ├── authRoutes.js       # /api/auth endpoints
+│   │   ├── resumeRoutes.js     # /api/resumes endpoints
+│   │   └── analyzeRoutes.js    # /api/analyze endpoint
+│   ├── middleware/
+│   │   ├── auth.js             # JWT bearer verification middleware
+│   │   └── errorHandler.js     # Centralized 400/401/403/404/500 handler
+│   ├── utils/
+│   │   └── generateToken.js    # JWT signing helper
+│   ├── lib/                    # Gemini AI & fallback analysis logic
+│   ├── server.js               # Express application entry point
+│   ├── package.json
+│   ├── .env                    # Local server environment configuration
+│   └── .env.example            # Sample configuration template
+│
+├── postman_collection.json     # Pre-configured Postman test suite
+├── package.json                # Root orchestration scripts
+├── .gitignore
+└── README.md
 ```
 
-- **Development**: Concurrently runs Express API server (`http://localhost:3001`) and Vite dev server (`http://localhost:5173`). Vite proxies `/api/*` requests to Express.
-- **Production**: Express server serves static assets built into `dist/` and handles `/api/analyze` requests.
+---
+
+## Prerequisites
+
+- **Node.js**: v18.0.0 or higher (v20+ recommended)
+- **npm**: v9.0.0 or higher
+- **MongoDB**: Local MongoDB instance OR free [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) cluster account
 
 ---
 
 ## Environment Variables
 
-Store your Gemini API key in `.env.local` at the root of the project:
+### Backend Configuration (`server/.env`)
 
-```env
-# .env.local
-GEMINI_API_KEY=your_google_gemini_api_key_here
-PORT=3001
-```
+Copy `server/.env.example` to `server/.env`:
 
-> ⚠️ Never commit `.env.local` to version control. It is listed in `.gitignore`.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend Framework | React 19 + TypeScript |
-| Build Tool | Vite 8 |
-| Backend Proxy | Express 5 + Node.js |
-| AI Model SDK | `@google/generative-ai` (Gemini 2.0 Flash) |
-| Runtime Validation | Zod 3 / 4 |
-| Styling | Tailwind CSS 3 (Glassmorphism & Gradients) |
-| Routing | React Router DOM 7 |
-| Testing Stack | Vitest + React Testing Library + jsdom |
-| PDF Generation | jsPDF 4 + html2canvas 1 |
-
----
-
-## Project Structure
-
-```
-resume-forge/
-├── .env.local                        # Environment variables (API Key)
-├── tsconfig.json                     # Frontend TypeScript configuration
-├── vitest.config.ts                  # Vitest test setup
-├── vite.config.js                    # Vite dev server + /api proxy config
-├── server/                           # Server-side backend proxy
-│   ├── index.ts                      # Express server entry point
-│   ├── tsconfig.json                 # Node TypeScript config
-│   ├── routes/
-│   │   └── analyze.ts                # POST /api/analyze route
-│   └── lib/
-│       ├── gemini.ts                 # Generative AI SDK wrapper & timeout
-│       ├── prompts.ts                # ATS System prompt & serializer
-│       └── schema.ts                 # Zod validation schema
-└── src/                              # Frontend source
-    ├── main.jsx
-    ├── App.jsx                       # Router setup (/builder, /analyzer, etc.)
-    ├── types/
-    │   └── analysis.ts               # Shared TypeScript interfaces
-    ├── lib/
-    │   └── api.ts                    # API client wrapper
-    ├── hooks/
-    │   └── useJobAnalysis.ts         # Analysis state management hook
-    ├── pages/
-    │   ├── Home.jsx
-    │   ├── Builder.jsx
-    │   └── Analyzer.tsx              # AI Analyzer Dashboard page
-    ├── components/
-    │   ├── JobMatchAnalyzer.jsx      # Offline analyzer + AI CTA banner
-    │   └── analyzer/                 # Dashboard section components
-    │       ├── ScoreRing.tsx
-    │       ├── StrengthsList.tsx
-    │       ├── MissingSkills.tsx
-    │       ├── KeywordTable.tsx
-    │       ├── AtsIssues.tsx
-    │       ├── Improvements.tsx
-    │       ├── ImprovedSummary.tsx
-    │       ├── ImprovedBullets.tsx
-    │       ├── AnalysisError.tsx
-    │       └── AnalysisSkeleton.tsx
-    └── __tests__/                    # Vitest test suites
-        ├── schema.test.ts
-        ├── useJobAnalysis.test.ts
-        └── Analyzer.test.tsx
-```
-
----
-
-## Getting Started
-
-### 1. Installation
 ```bash
-git clone https://github.com/your-username/resume-forge.git
-cd resume-forge
+cp server/.env.example server/.env
+```
+
+| Variable | Description | Example Value |
+|---|---|---|
+| `PORT` | Express server port | `5000` |
+| `NODE_ENV` | Environment mode (`development` / `production`) | `development` |
+| `MONGODB_URI` | MongoDB connection URI | `mongodb+srv://user:pass@cluster.mongodb.net/resumeforge?retryWrites=true&w=majority` |
+| `JWT_SECRET` | Secret key used for signing JWTs | `a_very_secure_and_long_secret_key_123` |
+| `JWT_EXPIRE` | Expiry duration for authentication tokens | `30d` |
+| `CLIENT_URL` | Frontend origin for CORS | `http://localhost:5173` |
+| `GEMINI_API_KEY` | *(Optional)* Google Gemini API key for AI analyzer | `AIzaSy...` |
+
+> ⚠️ **Security Notice**: Never commit `server/.env` to source control. It is ignored by `.gitignore`.
+
+---
+
+## MongoDB Atlas Setup Guide
+
+To use MongoDB Atlas (recommended for production and deployment):
+
+1. **Sign Up**: Navigate to [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas) and register for a free account.
+2. **Create a Free Cluster**: Choose **M0 Free Tier**, pick your nearest AWS/GCP region, and click **Create Deployment**.
+3. **Set Up Database User**:
+   - Go to **Security > Database Access**.
+   - Click **Add New Database User**.
+   - Choose **Password** authentication, enter a username and strong password.
+   - Assign database role: `Read and write to any database`.
+4. **Configure Network Access**:
+   - Go to **Security > Network Access**.
+   - Click **Add IP Address**.
+   - Choose `Allow Access from Anywhere` (`0.0.0.0/0`) for development, or add your specific IP.
+5. **Get Connection String**:
+   - Go to **Database > Clusters > Connect**.
+   - Select **Drivers (Node.js)**.
+   - Copy the URI string formatted like:
+     ```
+     mongodb+srv://<username>:<password>@cluster0.abcde.mongodb.net/resumeforge?retryWrites=true&w=majority
+     ```
+6. **Set in `server/.env`**:
+   Replace `<username>` and `<password>` with your Atlas user credentials and paste the connection string as `MONGODB_URI`.
+
+---
+
+## Installation & Local Setup
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/jayeshchaudhari4511/ResumeForge.git
+cd ResumeForge
+```
+
+### 2. Install all dependencies
+
+Install root, client, and server dependencies:
+
+```bash
+# Install root orchestration packages
 npm install
+
+# Install client packages
+npm install --prefix client
+
+# Install server packages
+npm install --prefix server
 ```
 
-### 2. Configure API Key
-Create a `.env.local` file:
+---
+
+## Running the Application
+
+### Option A: Run Both Frontend & Backend Concurrently (Recommended)
+
+From the project root:
+
 ```bash
-echo "GEMINI_API_KEY=your_key_here" > .env.local
+npm run dev
 ```
 
-### 3. Run Development Servers
-To run both the Vite dev server and Express API server concurrently:
+This starts:
+- **Express Backend Server**: `http://localhost:5000`
+- **Vite React Frontend**: `http://localhost:5173`
+
+---
+
+### Option B: Run Services Individually
+
+In Terminal 1 (Backend):
 ```bash
-npm run dev:all
+cd server
+npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+
+In Terminal 2 (Frontend):
+```bash
+cd client
+npm run dev
+```
+
+---
+
+### Production Build & Local Serve
+
+1. Build client bundle:
+   ```bash
+   npm run build
+   ```
+2. Run backend in production mode (serves static files from `client/dist`):
+   ```bash
+   cd server
+   NODE_ENV=production npm start
+   ```
+
+---
+
+## REST API Documentation
+
+Base URL: `http://localhost:5000/api`
+
+### 1. Authentication Endpoints
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Public | Register new user with `name`, `email`, `password` |
+| `POST` | `/api/auth/login` | Public | Authenticate user with `email`, `password` |
+| `GET` | `/api/auth/me` | Private | Retrieve current user profile (requires Bearer token) |
+
+#### Register Request Body
+```json
+{
+  "name": "Alex Morgan",
+  "email": "alex@example.com",
+  "password": "Password123!"
+}
+```
+
+#### Register / Login Response (201 / 200)
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsIn...",
+  "user": {
+    "_id": "660c1d2e8f1b2c0012345678",
+    "name": "Alex Morgan",
+    "email": "alex@example.com",
+    "profile": {},
+    "createdAt": "2026-10-08T16:00:00.000Z"
+  },
+  "message": "Account created successfully"
+}
+```
+
+---
+
+### 2. Resume Endpoints (All Protected)
+
+Requires Header: `Authorization: Bearer <token>`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/resumes` | Retrieve all resumes belonging to the authenticated user |
+| `POST` | `/api/resumes` | Create a new resume document |
+| `GET` | `/api/resumes/:id` | Retrieve single resume by ID (verifies ownership) |
+| `PUT` | `/api/resumes/:id` | Update resume by ID (verifies ownership) |
+| `DELETE` | `/api/resumes/:id` | Delete resume by ID (verifies ownership) |
+
+#### Create Resume Request Body
+```json
+{
+  "title": "Full Stack Engineer Resume",
+  "personal": {
+    "fullName": "Alex Morgan",
+    "email": "alex@example.com",
+    "phone": "+1 (555) 019-2834",
+    "address": "San Francisco, CA",
+    "linkedin": "linkedin.com/in/alexmorgan",
+    "github": "github.com/alexmorgan"
+  },
+  "education": [
+    {
+      "collegeName": "Stanford University",
+      "degree": "B.S. in Computer Science",
+      "cgpa": "3.9",
+      "year": "2024"
+    }
+  ],
+  "experience": [
+    {
+      "companyName": "Tech Corp",
+      "role": "Software Engineer",
+      "duration": "2024 - Present",
+      "description": "Architected microservices and RESTful APIs in Node.js and MongoDB."
+    }
+  ],
+  "projects": [
+    {
+      "title": "ResumeForge",
+      "techStack": "React, Express, MongoDB, Tailwind",
+      "link": "https://github.com/alexmorgan/resumeforge",
+      "description": "MERN stack resume workspace with real-time preview."
+    }
+  ],
+  "skills": ["JavaScript", "TypeScript", "React", "Node.js", "MongoDB", "Express", "Tailwind CSS"],
+  "certifications": [
+    {
+      "certName": "AWS Certified Developer",
+      "organization": "Amazon Web Services",
+      "year": "2024"
+    }
+  ],
+  "summary": "Full Stack Engineer specializing in scalable web architectures.",
+  "template": "ats"
+}
+```
+
+---
+
+### 3. Health & AI Analysis Endpoints
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/health` | Public | Server status, database connection, timestamp |
+| `POST` | `/api/analyze` | Public | Analyzes resume against job description via Gemini |
+
+---
+
+## Postman API Testing Guide
+
+A complete Postman collection is included in the root directory: [`postman_collection.json`](file:///c:/assignment%20resume/resume-forge/postman_collection.json).
+
+### Steps to Test:
+
+1. **Open Postman** and click **Import**.
+2. Select or drag-and-drop [`postman_collection.json`](file:///c:/assignment%20resume/resume-forge/postman_collection.json).
+3. The collection **ResumeForge MERN API Collection** will appear with pre-configured requests and collection variables (`baseUrl`, `authToken`, `resumeId`).
+4. **Execute in order**:
+   - **Step 1: Register User** (`POST /api/auth/register`) — Automatically stores the returned JWT in the collection's `{{authToken}}` variable.
+   - **Step 2: Login User** (`POST /api/auth/login`) — Refreshes the token.
+   - **Step 3: Get Current User** (`GET /api/auth/me`) — Uses `Bearer {{authToken}}` and validates returned profile.
+   - **Step 4: Create Resume** (`POST /api/resumes`) — Creates a resume and saves `_id` into `{{resumeId}}`.
+   - **Step 5: Get All Resumes** (`GET /api/resumes`) — Returns list of user's resumes.
+   - **Step 6: Get Single Resume** (`GET /api/resumes/{{resumeId}}`) — Verifies resume retrieval.
+   - **Step 7: Update Resume** (`PUT /api/resumes/{{resumeId}}`) — Modifies resume title/skills.
+   - **Step 8: Delete Resume** (`DELETE /api/resumes/{{resumeId}}`) — Removes the resume from MongoDB.
+   - **Step 9: Health Check** (`GET /api/health`) — Confirms database connectivity.
+   - **Step 10: AI Analyze** (`POST /api/analyze`) — Tests resume match scoring.
+
+---
+
+## Deployment Guide
+
+### Backend Deployment (Render, Railway, Heroku)
+
+1. **Deploying on Render / Railway**:
+   - Create a new **Web Service** and link your Git repository.
+   - Set **Root Directory** to `server`.
+   - Set **Build Command**: `npm install`.
+   - Set **Start Command**: `npm start`.
+   - Add Environment Variables under service settings:
+     ```
+     NODE_ENV=production
+     PORT=5000
+     MONGODB_URI=<your_mongodb_atlas_uri>
+     JWT_SECRET=<your_strong_random_secret>
+     CLIENT_URL=https://your-frontend.vercel.app
+     GEMINI_API_KEY=<your_gemini_api_key>
+     ```
+
+### Frontend Deployment (Vercel, Netlify)
+
+1. **Deploying on Vercel**:
+   - Import the GitHub repository into Vercel.
+   - Set **Root Directory** to `client`.
+   - Framework preset will automatically detect **Vite**.
+   - Build Command: `npm run build`.
+   - Output Directory: `dist`.
+   - Add Environment Variable:
+     ```
+     VITE_API_BASE_URL=https://your-backend-service.onrender.com/api
+     ```
+
+---
+
+## Data Migration (Local Storage to MongoDB)
+
+1. **Automatic Hybrid Persistence**:
+   - As users create or edit resumes in the Builder, work is automatically kept in local draft cache (`resumeforge_` keys).
+   - Once the user logs in or clicks **Save Resume**, the builder posts the resume data to `/api/resumes` in MongoDB.
+   - The returned document ID is linked in the URL (`/builder?id=...`), synchronizing all subsequent edits to the cloud database.
+2. **Accessing Resumes Across Devices**:
+   - On any device, simply log in and navigate to the **Dashboard** (`/dashboard`) to view and edit all cloud-saved resumes.
 
 ---
 
 ## Testing
 
-Run unit & integration tests using Vitest:
+Run the full automated test suite (unit tests, component tests, and handler tests):
 
 ```bash
-npm run test
+npm test
 ```
 
-### Test Coverage Includes:
-- **Zod Schema**: Verification of Gemini response validation rules.
-- **`useJobAnalysis` Hook**: Testing success, API failure, network error, and reset behavior.
-- **`Analyzer` Component**: Testing page renders, input validation, loading skeletons, dashboard display, error handling, and retry.
+Generate test coverage report:
 
----
-
-## AI Job Match Analyzer Philosophy
-
-The AI system prompt enforces strict ATS reviewer guidelines:
-1. **No Invented Experience**: Recommendations reference only facts present in the resume.
-2. **No Exaggerated Achievements**: Metric scope and numbers are preserved.
-3. **No Unlisted Technologies**: Missing skills are flagged rather than dishonestly added.
-4. **Actionable Rationale**: Every suggestion explains *why* it helps ATS or recruiters.
-
----
-
-## Deployment
-
-### Production Build
 ```bash
-npm run build
+npm run test:coverage
 ```
-
-### Run Server in Production Mode
-```bash
-NODE_ENV=production npm run server
-```
-The Express server serves the static assets in `dist/` and handles API requests on port 3001.
-
----
-
-## Known Limitations
-
-- **API Rate Limits**: Requests depend on Gemini API quota limits (429 errors handled gracefully).
-- **Network Dependency**: AI features require internet connectivity (offline keyword analyzer remains available as fallback).
-- **Single Resume Focus**: Compares current active resume in localStorage.
-
----
-
-## Future Improvements
-
-- Streaming responses for real-time AI feedback rendering.
-- PDF upload to directly extract resume text via Gemini Multimodal.
-- Multi-model fallback (e.g. Gemini Pro / Claude).
-
----
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev:all` | Run Vite frontend + Express server concurrently |
-| `npm run dev` | Run Vite frontend dev server |
-| `npm run server` | Run Express backend proxy server |
-| `npm run build` | Build production frontend bundle |
-| `npm run test` | Run Vitest unit & integration tests |
-| `npm run lint` | Run ESLint across codebase |
 
 ---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](file:///c:/assignment%20resume/resume-forge/LICENSE) file for details.
-
----
-
-## Author
-
-Made by Jayesh Chaudhari — [jayesh6056@gmail.com](mailto:jayesh6056@gmail.com)
+This project is licensed under the MIT License. See [LICENSE](file:///c:/assignment%20resume/resume-forge/LICENSE) for details.

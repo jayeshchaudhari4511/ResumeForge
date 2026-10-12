@@ -1,5 +1,7 @@
 import type { AnalysisResult, ResumeData, AnalysisError as AnalysisErrorType } from '../types/analysis'
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+
 /**
  * Custom error class for analysis API failures.
  * Carries a typed error code for the UI to handle appropriately.
@@ -31,7 +33,7 @@ export async function analyzeResume(
   let response: Response
 
   try {
-    response = await fetch('/api/analyze', {
+    response = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumeData, jobDescription }),

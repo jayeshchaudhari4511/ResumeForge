@@ -1,5 +1,5 @@
 import express from 'express';
-import { processAnalysisRequest } from '../lib/analyzerHandler.ts';
+import { processAnalysisRequest } from '../lib/analyzerHandler.js';
 
 const router = express.Router();
 

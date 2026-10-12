@@ -96,7 +96,7 @@ const TABS = [
 ]
 
 export default function Builder() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, token, loading: authLoading } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const currentResumeId = searchParams.get('id')
@@ -169,7 +169,9 @@ export default function Builder() {
     setSaveMessage('')
     setSaveError('')
 
-    if (!isAuthenticated) {
+    // Use token directly — isAuthenticated also requires user to be loaded,
+    // which causes a race on page refresh where token exists but user hasn't hydrated yet.
+    if (!token) {
       setSaveMessage('Saved locally in draft! Log in to sync to MongoDB cloud.')
       setTimeout(() => setSaveMessage(''), 4000)
       return
@@ -284,7 +286,7 @@ export default function Builder() {
               <button
                 id="builder-save-btn"
                 onClick={handleSave}
-                disabled={saving || loadingCloud}
+                disabled={saving || loadingCloud || authLoading}
                 className="btn-primary text-xs sm:text-sm px-4 py-2 flex items-center gap-1.5 shadow-glow"
               >
                 {saving ? (
